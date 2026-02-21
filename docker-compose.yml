@@ -3,7 +3,7 @@ version: "3.9"
 services:
 
   postgres:
-    image: postgres:15
+    build: ./db
     container_name: trading_postgres
     environment:
       POSTGRES_DB: trading

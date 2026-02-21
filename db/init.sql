@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS trades_raw (
+    id SERIAL PRIMARY KEY,
+    trade_id VARCHAR(100) UNIQUE NOT NULL,
+    user_id VARCHAR(50),
+    symbol VARCHAR(20),
+    price NUMERIC,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

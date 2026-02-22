@@ -1,49 +1,47 @@
-import redis
-import psycopg2
 import json
 import time
-import os
+import redis
 
-# Redis connection
-r = redis.from_url(os.getenv("REDIS_URL"))
+import config
+import database
+import tasks
 
-# Postgres connection
-conn = psycopg2.connect(
-    host="postgres",        # must match service name
-    database="trading",
-    user="admin",
-    password="admin"
-)
-conn.autocommit = True
-cur = conn.cursor()
 
-print("Worker started...")
+def main():
+    r = redis.from_url(config.REDIS_URL)
+    conn = database.get_conn()
+    cur = conn.cursor()
 
-while True:
-    item = r.brpop("trade_queue", timeout=5)
+    print("Worker started...")
 
-    if item:
-        _, data = item
-        trade = json.loads(data)
+    while True:
+        item = r.brpop(config.QUEUE_NAME, timeout=config.BRPOP_TIMEOUT_SECONDS)
+
+        if not item:
+            time.sleep(config.IDLE_SLEEP_SECONDS)
+            continue
+
+        _, payload = item
+
+        if isinstance(payload, (bytes, bytearray)):
+            payload = payload.decode("utf-8")
 
         try:
-            cur.execute(
-                """
-                INSERT INTO trades_raw (trade_id, user_id, symbol, price)
-                VALUES (%s, %s, %s, %s)
-                """,
-                (
-                    trade["trade_id"],
-                    trade["user"],
-                    trade["symbol"],
-                    trade["price"]
-                )
-            )
-            print(f"Inserted trade {trade['trade_id']}")
+            trade = json.loads(payload)
+        except json.JSONDecodeError:
+            print("Invalid JSON payload:", payload)
+            continue
 
-        except psycopg2.errors.UniqueViolation:
-            conn.rollback()  # important after exception
-            print(f"Duplicate trade ignored: {trade['trade_id']}")
+        try:
+            tasks.upsert_trade(cur, trade)
+            print(f"Upserted trade {trade.get('trade_id')}")
+        except Exception as e:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            print("Failed processing trade:", trade, "error:", repr(e))
 
-    else:
-        time.sleep(1)
+
+if __name__ == "__main__":
+    main()

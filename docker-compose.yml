@@ -1,9 +1,8 @@
-version: "3.9"
-
 services:
 
   postgres:
     build: ./db
+    restart: unless-stopped
     container_name: trading_postgres
     environment:
       POSTGRES_DB: trading
@@ -15,12 +14,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   redis:
+    restart: unless-stopped
     image: redis:7
     container_name: trading_redis
     ports:
       - "6379:6379"
 
   api:
+    restart: unless-stopped
     build: ./api
     container_name: trading_api
     depends_on:
@@ -33,6 +34,7 @@ services:
 
   worker:
     build: ./worker
+    restart: unless-stopped
     container_name: trading_worker
     depends_on:
       - postgres

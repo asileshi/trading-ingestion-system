@@ -6,6 +6,15 @@ DATABASE_URL = os.getenv(
     "postgresql://admin:admin@postgres:5432/trading",
 )
 
-QUEUE_NAME = os.getenv("TRADE_QUEUE_NAME", "trade_queue")
-BRPOP_TIMEOUT_SECONDS = int(os.getenv("BRPOP_TIMEOUT_SECONDS", "5"))
+# Redis list keys
+QUEUE_KEY = os.getenv("TRADE_QUEUE_KEY", "trades:queue")
+PROCESSING_KEY = os.getenv("TRADE_PROCESSING_KEY", "trades:processing")
+DLQ_KEY = os.getenv("TRADE_DLQ_KEY", "trades:dlq")
+
+# Worker loop behavior
+BLPOP_TIMEOUT_SECONDS = int(os.getenv("BLPOP_TIMEOUT_SECONDS", "5"))
 IDLE_SLEEP_SECONDS = float(os.getenv("IDLE_SLEEP_SECONDS", "0.2"))
+
+# Retry behavior
+MAX_ATTEMPTS = int(os.getenv("MAX_ATTEMPTS", "5"))
+RETRY_BACKOFF_SECONDS = float(os.getenv("RETRY_BACKOFF_SECONDS", "0.5"))
